@@ -1,0 +1,165 @@
+{% extends "pins/base.html" %}
+{% block title %}Automation Settings{% endblock %}
+{% block page_title %}Automation Settings{% endblock %}
+{% block page_subtitle %}<p class="text-xs text-slate-500">Configure auto-posting to Pinterest, on your schedule.</p>{% endblock %}
+
+{% block content %}
+<form method="post" class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+    {% csrf_token %}
+
+    <div class="space-y-6 lg:col-span-2">
+
+        <!-- Master switch -->
+        <div class="card flex items-center justify-between p-5">
+            <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-500">
+                    <i data-lucide="zap" class="h-5 w-5"></i>
+                </span>
+                <div>
+                    <p class="text-sm font-bold text-slate-900">Automated posting</p>
+                    <p class="text-xs text-slate-500">When on, queued content posts automatically on your schedule.</p>
+                </div>
+            </div>
+            <label class="relative inline-flex cursor-pointer items-center">
+                {{ form.is_enabled }}
+                <div class="peer h-6 w-11 rounded-full bg-slate-200 transition-colors peer-checked:bg-brand-500 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-5"></div>
+            </label>
+        </div>
+
+        <!-- Pinterest connection -->
+        <div class="card space-y-4 p-5">
+            <h2 class="text-sm font-bold text-slate-900">Pinterest API connection</h2>
+            <p class="text-xs text-slate-500">Generate a token from your Pinterest Developer app to allow posting.</p>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                    <label class="mb-1.5 block text-xs font-semibold text-slate-600">Access token</label>
+                    {{ form.pinterest_access_token }}
+                    {% if settings.pinterest_access_token %}
+                    <p class="mt-1 text-[11px] text-emerald-600">A token is already saved — leave blank to keep it.</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <label class="mb-1.5 block text-xs font-semibold text-slate-600">App ID</label>
+                    {{ form.pinterest_app_id }}
+                </div>
+            </div>
+            <div>
+                <label class="mb-1.5 block text-xs font-semibold text-slate-600">Default board</label>
+                {{ form.default_board }}
+                <p class="mt-1 text-[11px] text-slate-400">Used when a queued pin doesn't specify its own board.</p>
+            </div>
+        </div>
+
+        <!-- Schedule -->
+        <div class="card space-y-4 p-5">
+            <h2 class="text-sm font-bold text-slate-900">Posting schedule</h2>
+
+            <div>
+                <label class="mb-1.5 block text-xs font-semibold text-slate-600">Frequency</label>
+                {{ form.posting_frequency }}
+            </div>
+            <div>
+                <label class="mb-1.5 block text-xs font-semibold text-slate-600">Custom interval (hours)</label>
+                {{ form.custom_interval_hours }}
+                <p class="mt-1 text-[11px] text-slate-400">Only applies when frequency is set to "Custom interval".</p>
+            </div>
+
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                    <label class="mb-1.5 block text-xs font-semibold text-slate-600">Posting window starts</label>
+                    {{ form.daily_start_time }}
+                </div>
+                <div>
+                    <label class="mb-1.5 block text-xs font-semibold text-slate-600">Posting window ends</label>
+                    {{ form.daily_end_time }}
+                </div>
+            </div>
+
+            <div>
+                <label class="mb-2 block text-xs font-semibold text-slate-600">Active days</label>
+                <div class="grid grid-cols-7 gap-2 text-center">
+                    {% for field in form %}
+                        {% if "post_" in field.name %}
+                        <label class="flex cursor-pointer flex-col items-center gap-1.5 rounded-xl border border-slate-200 py-2.5 text-[11px] font-semibold text-slate-500 has-[:checked]:border-brand-400 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-600">
+                            {{ field }}
+                            {{ field.name|slice:"5:"|slice:":3"|capfirst }}
+                        </label>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Content rules -->
+        <div class="card space-y-3 p-5">
+            <h2 class="text-sm font-bold text-slate-900">Content rules</h2>
+            <label class="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+                <span class="text-sm text-slate-700">Auto-generate hashtags from title &amp; category</span>
+                {{ form.auto_generate_hashtags }}
+            </label>
+            <label class="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+                <span class="text-sm text-slate-700">Only auto-post content flagged as AI-generated</span>
+                {{ form.only_post_ai_flagged_content }}
+            </label>
+            <div>
+                <label class="mb-1.5 block text-xs font-semibold text-slate-600">Default AI image style</label>
+                {{ form.default_ai_image_style }}
+                <p class="mt-1 text-[11px] text-slate-400">Appended to every "Generate with AI" prompt to keep a consistent look.</p>
+            </div>
+        </div>
+
+        <!-- Notifications -->
+        <div class="card space-y-4 p-5">
+            <h2 class="text-sm font-bold text-slate-900">Notifications</h2>
+            <label class="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+                <span class="text-sm text-slate-700">Email me if a scheduled post fails</span>
+                {{ form.notify_on_failure }}
+            </label>
+            <div>
+                <label class="mb-1.5 block text-xs font-semibold text-slate-600">Notification email</label>
+                {{ form.notification_email }}
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-2">
+            <button type="submit" class="btn-primary"><i data-lucide="save" class="h-4 w-4"></i> Save settings</button>
+        </div>
+    </div>
+
+    <!-- Activity log sidebar -->
+    <div class="card h-fit p-5">
+        <h2 class="mb-4 text-sm font-bold text-slate-900">Automation log</h2>
+        {% if logs %}
+        <div class="space-y-3">
+            {% for log in logs %}
+            <div class="flex items-start gap-2.5 text-xs">
+                {% if log.result == "success" %}
+                <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600"><i data-lucide="check" class="h-3 w-3"></i></span>
+                {% else %}
+                <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-rose-50 text-rose-600"><i data-lucide="x" class="h-3 w-3"></i></span>
+                {% endif %}
+                <div class="min-w-0">
+                    <p class="truncate font-medium text-slate-700">{{ log.pin.title|default:"System event" }}</p>
+                    <p class="text-slate-400">{{ log.message }} · {{ log.created_at|timesince }} ago</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="py-6 text-center">
+            <i data-lucide="history" class="mx-auto h-7 w-7 text-slate-300"></i>
+            <p class="mt-2 text-xs text-slate-500">No automation activity yet.</p>
+        </div>
+        {% endif %}
+
+        <div class="mt-5 rounded-xl border border-indigo-100 bg-indigo-50 p-3.5 text-[11px] leading-relaxed text-indigo-700">
+            <i data-lucide="info" class="mb-1 h-3.5 w-3.5"></i>
+            Hook this up by running a scheduled task (e.g. Celery beat or a cron job calling
+            <code class="rounded bg-white/60 px-1 py-0.5">manage.py run_auto_post</code>) that reads these
+            settings and publishes the next queued pin via the Pinterest API. Set
+            <code class="rounded bg-white/60 px-1 py-0.5">SD_API_URL</code> in <code class="rounded bg-white/60 px-1 py-0.5">.env</code>
+            (a self-hosted, open-source Stable Diffusion server) to enable real AI image generation on the "New Pin" page.
+        </div>
+    </div>
+</form>
+{% endblock %}

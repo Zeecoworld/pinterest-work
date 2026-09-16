@@ -1,0 +1,20 @@
+{% extends "pins/base.html" %}
+{% block title %}Delete Pin{% endblock %}
+{% block page_title %}Delete pin{% endblock %}
+
+{% block content %}
+<div class="card mx-auto max-w-md p-6 text-center">
+    <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-600">
+        <i data-lucide="trash-2" class="h-5 w-5"></i>
+    </div>
+    <h2 class="mt-4 text-base font-bold text-slate-900">Delete "{{ pin.title }}"?</h2>
+    <p class="mt-1 text-sm text-slate-500">This action can't be undone. The image and all scheduling history for this pin will be removed.</p>
+    <form method="post" class="mt-5 flex items-center justify-center gap-2">
+        {% csrf_token %}
+        <a href="{% url 'pins:content_list' %}" class="btn-secondary">Cancel</a>
+        <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-700">
+            <i data-lucide="trash-2" class="h-4 w-4"></i> Delete pin
+        </button>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends "pins/base.html" %}
+{% block title %}{{ pin.title }}{% endblock %}
+{% block page_title %}{{ pin.title }}{% endblock %}
+{% block header_actions %}
+<a href="{% url 'pins:content_edit' pin.pk %}" class="btn-secondary"><i data-lucide="pencil" class="h-4 w-4"></i> Edit</a>
+<a href="{% url 'pins:content_list' %}" class="btn-secondary"><i data-lucide="arrow-left" class="h-4 w-4"></i> Back</a>
+{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+    <div class="card overflow-hidden lg:col-span-1">
+        <img src="{{ pin.image.url }}" alt="{{ pin.alt_text }}" class="w-full object-cover">
+    </div>
+
+    <div class="card space-y-4 p-5 lg:col-span-2">
+        <div class="flex flex-wrap items-center gap-2">
+            <span class="badge
+                {% if pin.status == 'posted' %}bg-emerald-50 text-emerald-600
+                {% elif pin.status == 'scheduled' %}bg-amber-50 text-amber-600
+                {% elif pin.status == 'failed' %}bg-rose-50 text-rose-600
+                {% elif pin.status == 'queued' %}bg-indigo-50 text-indigo-600
+                {% else %}bg-slate-100 text-slate-600{% endif %}">
+                {{ pin.get_status_display }}
+            </span>
+            {% if pin.category %}
+            <span class="badge" style="background:{{ pin.category.color }}1a; color:{{ pin.category.color }};">{{ pin.category.name }}</span>
+            {% endif %}
+            {% if pin.is_ai_generated %}
+            <span class="badge bg-slate-100 text-slate-600"><i data-lucide="sparkles" class="h-3 w-3"></i> AI generated</span>
+            {% endif %}
+        </div>
+
+        <p class="text-sm leading-relaxed text-slate-700">{{ pin.description }}</p>
+
+        {% if pin.hashtags %}
+        <p class="text-sm font-medium text-brand-500">{{ pin.hashtags }}</p>
+        {% endif %}
+
+        <dl class="grid grid-cols-2 gap-4 border-t border-slate-100 pt-4 text-sm">
+            <div>
+                <dt class="text-xs text-slate-500">Board</dt>
+                <dd class="font-medium text-slate-800">{{ pin.board.name }}</dd>
+            </div>
+            <div>
+                <dt class="text-xs text-slate-500">Destination link</dt>
+                <dd class="truncate font-medium text-brand-500">
+                    {% if pin.destination_link %}<a href="{{ pin.destination_link }}" target="_blank" rel="noopener">{{ pin.destination_link }}</a>{% else %}—{% endif %}
+                </dd>
+            </div>
+            <div>
+                <dt class="text-xs text-slate-500">Scheduled for</dt>
+                <dd class="font-medium text-slate-800">{{ pin.scheduled_for|date:"M j, Y g:i A"|default:"—" }}</dd>
+            </div>
+            <div>
+                <dt class="text-xs text-slate-500">Posted at</dt>
+                <dd class="font-medium text-slate-800">{{ pin.posted_at|date:"M j, Y g:i A"|default:"—" }}</dd>
+            </div>
+        </dl>
+
+        {% if pin.status == 'failed' and pin.failure_reason %}
+        <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            <strong>Failure reason:</strong> {{ pin.failure_reason }}
+        </div>
+        {% endif %}
+
+        {% if pin.logs.all %}
+        <div class="border-t border-slate-100 pt-4">
+            <h3 class="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">Activity log</h3>
+            <div class="space-y-2">
+                {% for log in pin.logs.all %}
+                <div class="flex items-center gap-2 text-xs text-slate-600">
+                    <span class="h-1.5 w-1.5 rounded-full {% if log.result == 'success' %}bg-emerald-500{% else %}bg-rose-500{% endif %}"></span>
+                    {{ log.message }} <span class="text-slate-400">· {{ log.created_at|timesince }} ago</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
