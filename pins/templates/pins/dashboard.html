@@ -88,15 +88,12 @@
                     <dd class="font-medium text-slate-800">{{ automation.get_posting_frequency_display }}</dd>
                 </div>
                 <div class="flex justify-between">
-<<<<<<< HEAD
                     <dt class="text-slate-500">Posting windows</dt>
                     <dd class="font-medium text-slate-800">
                         {% for label, start, end in automation.active_windows %}{{ label }} {{ start|time:"g:i A" }}–{{ end|time:"g:i A" }}{% if not forloop.last %}, {% endif %}{% empty %}None active{% endfor %}
                     </dd>
-=======
                     <dt class="text-slate-500">Posting window</dt>
                     <dd class="font-medium text-slate-800">{{ automation.daily_start_time|time:"g:i A" }} – {{ automation.daily_end_time|time:"g:i A" }}</dd>
->>>>>>> main
                 </div>
                 <div class="flex justify-between">
                     <dt class="text-slate-500">Active days</dt>
