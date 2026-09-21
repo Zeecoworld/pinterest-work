@@ -1,0 +1,47 @@
+services:
+  # --- Web dashboard ---
+  - type: web
+    name: zeecomedia-pinterest-dashboard
+    runtime: python
+    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput"
+    startCommand: "gunicorn config.wsgi:application"
+    envVars:
+      - key: DJANGO_DEBUG
+        value: "false"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: DATABASE_URL
+        sync: false        # paste your Supabase pooler connection string in the Render dashboard
+      - key: DATABASE_SSL_REQUIRE
+        value: "true"
+      - key: SITE_BASE_URL
+        sync: false        # your public Render URL, e.g. https://zeecomedia-pinterest-dashboard.onrender.com
+
+  # --- Auto-post cron job ---
+  # Each active window (morning/afternoon/evening) gets ONE randomly chosen
+  # posting time per day, picked automatically the first time it's checked.
+  # Because the exact minute is random, this job must run frequently enough
+  # to catch it — every 15 minutes below. It's a no-op most of the time
+  # (just checks the clock and exits), so this stays well under Render's
+  # $1/month cron minimum regardless of how often it fires.
+  - type: cron
+    name: zeecomedia-pinterest-auto-post
+    runtime: python
+    schedule: "*/15 * * * *"
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python manage.py run_auto_post"
+    envVars:
+      - key: DJANGO_DEBUG
+        value: "false"
+      - key: DJANGO_SECRET_KEY
+        sync: false        # use the SAME value as the web service so both share config consistently
+      - key: DJANGO_ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: DATABASE_URL
+        sync: false        # MUST be the SAME Supabase DB as the web service — this is how they share AutomationSettings/PinContent
+      - key: DATABASE_SSL_REQUIRE
+        value: "true"
+      - key: SITE_BASE_URL
+        sync: false        # your public Render URL — only needed if NOT using Supabase Storage for images
