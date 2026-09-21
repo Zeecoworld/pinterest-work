@@ -165,6 +165,7 @@ STATIC_URL = 'static/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+
 # Public base URL of this site (e.g. https://zeecomedia-pinterest.onrender.com).
 # Only needed if you're on local/disk storage (USE_SUPABASE_STORAGE=false) —
 # the Pinterest API needs a publicly fetchable image URL, and local storage
@@ -172,7 +173,6 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Not needed at all when USE_SUPABASE_STORAGE=true, since Supabase already
 # returns full https:// URLs.
 SITE_BASE_URL = env('SITE_BASE_URL', '')
-
 SUPABASE_URL = env('SUPABASE_URL', '')
 SUPABASE_SERVICE_ROLE_KEY = env('SUPABASE_SERVICE_ROLE_KEY', '')
 SUPABASE_STORAGE_BUCKET = env('SUPABASE_STORAGE_BUCKET', 'pin-images')

@@ -63,7 +63,6 @@
                 {{ form.custom_interval_hours }}
                 <p class="mt-1 text-[11px] text-slate-400">Only applies when frequency is set to "Custom interval".</p>
             </div>
-
             <div class="space-y-3">
                 <label class="mb-1 block text-xs font-semibold text-slate-600">Posting windows</label>
 
@@ -100,6 +99,15 @@
                     </div>
                 </div>
                 <p class="text-[11px] text-slate-400">Automation only posts inside a window that's switched on. Uncheck a window to skip that time of day entirely.</p>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                    <label class="mb-1.5 block text-xs font-semibold text-slate-600">Posting window starts</label>
+                    {{ form.daily_start_time }}
+                </div>
+                <div>
+                    <label class="mb-1.5 block text-xs font-semibold text-slate-600">Posting window ends</label>
+                    {{ form.daily_end_time }}
+                </div>
             </div>
 
             <div>

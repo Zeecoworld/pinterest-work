@@ -129,6 +129,7 @@ class PinContent(models.Model):
         )
 
 
+
 def _random_time_in_range(start, end):
     """Pick a random time-of-day between `start` and `end` (inclusive), at minute granularity."""
     import datetime
@@ -185,6 +186,7 @@ class DailyPostSlot(models.Model):
         )
 
 
+
 class AutomationSettings(models.Model):
     """
     Singleton-style settings row controlling auto-posting behaviour.
@@ -218,7 +220,6 @@ class AutomationSettings(models.Model):
     custom_interval_hours = models.PositiveSmallIntegerField(
         default=6, help_text="Only used when frequency is 'Custom interval'."
     )
-
     # Three independent daily posting windows (morning / afternoon / evening).
     # run_auto_post only posts when the current time falls inside one of the
     # windows below that is switched on — this replaces the old single
@@ -234,6 +235,13 @@ class AutomationSettings(models.Model):
     evening_enabled = models.BooleanField(default=True)
     evening_start = models.TimeField(default="18:00")
     evening_end = models.TimeField(default="20:00")
+
+    daily_start_time = models.TimeField(
+        default="09:00", help_text="Earliest time of day a post can go out."
+    )
+    daily_end_time = models.TimeField(
+        default="20:00", help_text="Latest time of day a post can go out."
+    )
 
     post_monday = models.BooleanField(default=True)
     post_tuesday = models.BooleanField(default=True)
@@ -312,6 +320,10 @@ class AutomationSettings(models.Model):
             # reloaded from the DB, which turns them into real date/time
             # objects. Refresh once so every caller gets consistent types.
             obj.refresh_from_db()
+
+    @classmethod
+    def load(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
         return obj
 
 

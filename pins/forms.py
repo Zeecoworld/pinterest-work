@@ -128,6 +128,7 @@ class DailyQueueForm(forms.Form):
     )
 
 
+
 class AutomationSettingsForm(forms.ModelForm):
     class Meta:
         model = AutomationSettings
@@ -147,6 +148,8 @@ class AutomationSettingsForm(forms.ModelForm):
             "evening_enabled",
             "evening_start",
             "evening_end",
+            "daily_start_time",
+            "daily_end_time",
             "post_monday",
             "post_tuesday",
             "post_wednesday",
@@ -178,6 +181,8 @@ class AutomationSettingsForm(forms.ModelForm):
             "evening_enabled": forms.CheckboxInput(attrs={"class": BASE_CHECKBOX}),
             "evening_start": forms.TimeInput(attrs={"class": BASE_INPUT, "type": "time"}),
             "evening_end": forms.TimeInput(attrs={"class": BASE_INPUT, "type": "time"}),
+            "daily_start_time": forms.TimeInput(attrs={"class": BASE_INPUT, "type": "time"}),
+            "daily_end_time": forms.TimeInput(attrs={"class": BASE_INPUT, "type": "time"}),
             "post_monday": forms.CheckboxInput(attrs={"class": BASE_CHECKBOX}),
             "post_tuesday": forms.CheckboxInput(attrs={"class": BASE_CHECKBOX}),
             "post_wednesday": forms.CheckboxInput(attrs={"class": BASE_CHECKBOX}),
