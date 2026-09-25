@@ -4,4 +4,5 @@ db.sqlite3
 media/
 !media/.gitkeep
 .env
+penv/
 venv/

@@ -201,8 +201,7 @@ class AutomationSettings(models.Model):
         default=False, help_text="Master switch — turn automated posting on or off."
     )
 
-    pinterest_access_token = models.CharField(
-        max_length=500,
+    pinterest_access_token = models.TextField(
         blank=True,
         help_text="Pinterest API access token (stored server-side, never shown in the UI).",
     )
@@ -213,7 +212,11 @@ class AutomationSettings(models.Model):
     # still filled in by that flow — these three just add what OAuth gives us
     # beyond a bare token: a refresh token, an expiry so we know when to use
     # it, and the connected account's username for display purposes.
-    pinterest_refresh_token = models.CharField(max_length=500, blank=True)
+    # TextField (not CharField) because real Pinterest tokens — especially
+    # with continuous_refresh — can run well past a 500-char varchar cap;
+    # this hit a "value too long for type character varying(500)" DataError
+    # in production against Postgres before it was switched to TextField.
+    pinterest_refresh_token = models.TextField(blank=True)
     pinterest_token_expires_at = models.DateTimeField(null=True, blank=True)
     pinterest_username = models.CharField(max_length=150, blank=True)
 
