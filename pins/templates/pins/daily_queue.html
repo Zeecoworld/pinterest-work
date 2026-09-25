@@ -1,0 +1,143 @@
+{% extends "pins/base.html" %}
+{% block title %}Daily Queue{% endblock %}
+{% block page_title %}Daily Queue{% endblock %}
+{% block page_subtitle %}<p class="text-xs text-slate-500">Upload today's images — one for each active posting window. Each posts automatically at that window's random time.</p>{% endblock %}
+
+{% block content %}
+{% if not settings.default_board %}
+<div class="card mb-6 border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+    Set a <a href="{% url 'pins:automation_settings' %}" class="font-semibold underline">default board</a> in Automation Settings before queuing daily images.
+</div>
+{% endif %}
+
+{% if not slots_by_window %}
+<div class="card p-5 text-sm text-slate-500">No posting windows are switched on. Enable at least one in Automation Settings.</div>
+{% endif %}
+
+<form method="post" enctype="multipart/form-data" class="space-y-6">
+    {% csrf_token %}
+
+    {% if "morning" in slots_by_window %}
+    <div class="card space-y-4 p-5">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-500"><i data-lucide="sunrise" class="h-5 w-5"></i></span>
+                <div>
+                    <p class="text-sm font-bold text-slate-900">{{ slots_by_window.morning.0 }}</p>
+                    <p class="text-xs text-slate-500">
+                        {% if slots_by_window.morning.1.completed %}
+                            Already posted today{% if slots_by_window.morning.1.pin %} — "{{ slots_by_window.morning.1.pin.title }}"{% endif %}
+                        {% else %}
+                            Today's random post time: <span class="font-semibold text-slate-700">{{ slots_by_window.morning.1.planned_time|time:"g:i A" }}</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            {% if slots_by_window.morning.1.pin and not slots_by_window.morning.1.completed %}
+            <span class="badge bg-indigo-50 text-indigo-600"><i data-lucide="image" class="h-3 w-3"></i> Queued: {{ slots_by_window.morning.1.pin.title }}</span>
+            {% endif %}
+        </div>
+        {% if not slots_by_window.morning.1.completed %}
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+                <label class="mb-1.5 block text-xs font-semibold text-slate-600">Image</label>
+                {{ form.morning_image }}
+            </div>
+            <div>
+                <label class="mb-1.5 block text-xs font-semibold text-slate-600">Title (optional)</label>
+                {{ form.morning_title }}
+            </div>
+        </div>
+        <div>
+            <label class="mb-1.5 block text-xs font-semibold text-slate-600">Description (optional)</label>
+            {{ form.morning_description }}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if "afternoon" in slots_by_window %}
+    <div class="card space-y-4 p-5">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-500"><i data-lucide="sun" class="h-5 w-5"></i></span>
+                <div>
+                    <p class="text-sm font-bold text-slate-900">{{ slots_by_window.afternoon.0 }}</p>
+                    <p class="text-xs text-slate-500">
+                        {% if slots_by_window.afternoon.1.completed %}
+                            Already posted today{% if slots_by_window.afternoon.1.pin %} — "{{ slots_by_window.afternoon.1.pin.title }}"{% endif %}
+                        {% else %}
+                            Today's random post time: <span class="font-semibold text-slate-700">{{ slots_by_window.afternoon.1.planned_time|time:"g:i A" }}</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            {% if slots_by_window.afternoon.1.pin and not slots_by_window.afternoon.1.completed %}
+            <span class="badge bg-indigo-50 text-indigo-600"><i data-lucide="image" class="h-3 w-3"></i> Queued: {{ slots_by_window.afternoon.1.pin.title }}</span>
+            {% endif %}
+        </div>
+        {% if not slots_by_window.afternoon.1.completed %}
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+                <label class="mb-1.5 block text-xs font-semibold text-slate-600">Image</label>
+                {{ form.afternoon_image }}
+            </div>
+            <div>
+                <label class="mb-1.5 block text-xs font-semibold text-slate-600">Title (optional)</label>
+                {{ form.afternoon_title }}
+            </div>
+        </div>
+        <div>
+            <label class="mb-1.5 block text-xs font-semibold text-slate-600">Description (optional)</label>
+            {{ form.afternoon_description }}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if "evening" in slots_by_window %}
+    <div class="card space-y-4 p-5">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-500"><i data-lucide="sunset" class="h-5 w-5"></i></span>
+                <div>
+                    <p class="text-sm font-bold text-slate-900">{{ slots_by_window.evening.0 }}</p>
+                    <p class="text-xs text-slate-500">
+                        {% if slots_by_window.evening.1.completed %}
+                            Already posted today{% if slots_by_window.evening.1.pin %} — "{{ slots_by_window.evening.1.pin.title }}"{% endif %}
+                        {% else %}
+                            Today's random post time: <span class="font-semibold text-slate-700">{{ slots_by_window.evening.1.planned_time|time:"g:i A" }}</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            {% if slots_by_window.evening.1.pin and not slots_by_window.evening.1.completed %}
+            <span class="badge bg-indigo-50 text-indigo-600"><i data-lucide="image" class="h-3 w-3"></i> Queued: {{ slots_by_window.evening.1.pin.title }}</span>
+            {% endif %}
+        </div>
+        {% if not slots_by_window.evening.1.completed %}
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+                <label class="mb-1.5 block text-xs font-semibold text-slate-600">Image</label>
+                {{ form.evening_image }}
+            </div>
+            <div>
+                <label class="mb-1.5 block text-xs font-semibold text-slate-600">Title (optional)</label>
+                {{ form.evening_title }}
+            </div>
+        </div>
+        <div>
+            <label class="mb-1.5 block text-xs font-semibold text-slate-600">Description (optional)</label>
+            {{ form.evening_description }}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if slots_by_window %}
+    <button type="submit" class="rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-brand-600">
+        Queue today's images
+    </button>
+    {% endif %}
+</form>
+{% endblock %}

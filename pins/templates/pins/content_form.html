@@ -1,0 +1,219 @@
+{% extends "pins/base.html" %}
+{% block title %}{% if is_edit %}Edit Pin{% else %}New Pin{% endif %}{% endblock %}
+{% block page_title %}{% if is_edit %}Edit Pin{% else %}Create a new pin{% endif %}{% endblock %}
+{% block page_subtitle %}<p class="text-xs text-slate-500">{% if is_edit %}Update the details below.{% else %}Add tech / AI content to your queue.{% endif %}</p>{% endblock %}
+{% block header_actions %}
+<a href="{% url 'pins:content_list' %}" class="btn-secondary"><i data-lucide="arrow-left" class="h-4 w-4"></i> Back to pins</a>
+{% endblock %}
+
+{% block content %}
+<form method="post" enctype="multipart/form-data"
+      x-data="{
+          preview: {% if is_edit and pin.image %}'{{ pin.image.url }}'{% else %}null{% endif %},
+          tab: 'upload',
+          generating: false,
+          genError: '',
+          usedRealApi: null,
+          prompt: '{{ pin.ai_prompt|default:""|escapejs }}',
+          async generateImage() {
+              this.genError = '';
+              this.generating = true;
+              try {
+                  const resp = await fetch('{% url "pins:generate_ai_image" %}', {
+                      method: 'POST',
+                      headers: {
+                          'Content-Type': 'application/json',
+                          'X-CSRFToken': getCookie('csrftoken'),
+                      },
+                      body: JSON.stringify({ prompt: this.prompt }),
+                  });
+                  const data = await resp.json();
+                  if (!resp.ok) {
+                      this.genError = data.error || 'Something went wrong generating the image.';
+                      return;
+                  }
+                  const file = b64ToFile(data.image_base64, data.filename);
+                  const dt = new DataTransfer();
+                  dt.items.add(file);
+                  const fileInput = this.$refs.fileInput;
+                  fileInput.files = dt.files;
+
+                  this.preview = URL.createObjectURL(file);
+                  this.usedRealApi = data.used_real_api;
+
+                  const promptField = document.querySelector('input[name=ai_prompt]');
+                  if (promptField) promptField.value = this.prompt;
+                  const aiFlag = document.querySelector('input[name=is_ai_generated]');
+                  if (aiFlag) aiFlag.checked = true;
+              } catch (err) {
+                  this.genError = 'Network error — please try again.';
+              } finally {
+                  this.generating = false;
+              }
+          },
+      }"
+      class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+    {% csrf_token %}
+
+    <!-- Image upload / AI generation -->
+    <div class="card p-5 lg:col-span-1">
+        <div class="mb-3 flex items-center justify-between">
+            <h2 class="text-sm font-bold text-slate-900">Pin image</h2>
+            <div class="flex rounded-lg bg-slate-100 p-0.5 text-xs font-semibold">
+                <button type="button" @click="tab = 'upload'"
+                        :class="tab === 'upload' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500'"
+                        class="rounded-md px-2.5 py-1 transition">Upload</button>
+                <button type="button" @click="tab = 'ai'"
+                        :class="tab === 'ai' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500'"
+                        class="flex items-center gap-1 rounded-md px-2.5 py-1 transition">
+                    <i data-lucide="sparkles" class="h-3 w-3"></i> Generate
+                </button>
+            </div>
+        </div>
+
+        <label @click="tab === 'upload' && $refs.fileInput.click()"
+               class="relative flex aspect-[3/4] flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 transition hover:border-brand-300 hover:bg-brand-50/40"
+               :class="tab === 'upload' ? 'cursor-pointer' : 'cursor-default'">
+            <template x-if="preview">
+                <img :src="preview" class="h-full w-full object-cover">
+            </template>
+            <template x-if="!preview && tab === 'upload'">
+                <div class="flex flex-col items-center gap-2 px-4 text-center">
+                    <i data-lucide="image-plus" class="h-8 w-8 text-slate-400"></i>
+                    <p class="text-xs font-medium text-slate-500">Click to upload an image</p>
+                    <p class="text-[11px] text-slate-400">Recommended 1000×1500px (2:3)</p>
+                </div>
+            </template>
+            <template x-if="!preview && tab === 'ai'">
+                <div class="flex flex-col items-center gap-2 px-4 text-center">
+                    <i data-lucide="sparkles" class="h-8 w-8 text-slate-400"></i>
+                    <p class="text-xs font-medium text-slate-500">Describe the image below and generate it with AI</p>
+                </div>
+            </template>
+            <template x-if="generating">
+                <div class="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-slate-900/60 text-white">
+                    <i data-lucide="loader-circle" class="h-6 w-6 animate-spin"></i>
+                    <p class="text-xs font-medium">Generating image…</p>
+                </div>
+            </template>
+        </label>
+        {{ form.image }}
+        {{ form.ai_prompt }}
+        <div class="mt-2 text-xs text-rose-600">{{ form.image.errors }}</div>
+
+        <!-- AI generate panel -->
+        <div x-show="tab === 'ai'" x-cloak class="mt-3 space-y-2">
+            <textarea x-model="prompt" rows="3" placeholder="e.g. a laptop showing Python code with a glowing AI brain icon, tech blog style"
+                      class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 shadow-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 focus:outline-none"></textarea>
+            <button type="button" @click="generateImage()" :disabled="generating || !prompt.trim()"
+                    class="btn-primary w-full justify-center disabled:cursor-not-allowed disabled:opacity-50">
+                <i data-lucide="sparkles" class="h-4 w-4"></i>
+                <span x-text="generating ? 'Generating…' : 'Generate image'"></span>
+            </button>
+            <p x-show="genError" x-text="genError" class="text-xs text-rose-600"></p>
+            <p x-show="usedRealApi === false" x-cloak class="rounded-lg bg-amber-50 px-2.5 py-2 text-[11px] text-amber-700">
+                Showing a demo preview — set <code class="rounded bg-white/70 px-1">SD_API_URL</code> in <code class="rounded bg-white/70 px-1">.env</code> (a self-hosted Stable Diffusion server) for real AI images.
+            </p>
+            <p x-show="usedRealApi === true" x-cloak class="rounded-lg bg-emerald-50 px-2.5 py-2 text-[11px] text-emerald-700">
+                Generated with AI ✨
+            </p>
+        </div>
+
+        <div class="mt-4">
+            <label class="mb-1.5 block text-xs font-semibold text-slate-600">Alt text</label>
+            {{ form.alt_text }}
+        </div>
+
+        <div class="mt-4 flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5">
+            {{ form.is_ai_generated }}
+            <label class="text-xs font-medium text-slate-600">Flag as AI-generated content</label>
+        </div>
+    </div>
+
+    <!-- Details -->
+    <div class="card space-y-4 p-5 lg:col-span-2">
+        <h2 class="text-sm font-bold text-slate-900">Details</h2>
+
+        <div>
+            <label class="mb-1.5 block text-xs font-semibold text-slate-600">Title</label>
+            {{ form.title }}
+            <div class="mt-1 text-xs text-rose-600">{{ form.title.errors }}</div>
+        </div>
+
+        <div>
+            <label class="mb-1.5 block text-xs font-semibold text-slate-600">Description</label>
+            {{ form.description }}
+            <div class="mt-1 text-xs text-rose-600">{{ form.description.errors }}</div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+                <label class="mb-1.5 block text-xs font-semibold text-slate-600">Board</label>
+                {{ form.board }}
+            </div>
+            <div>
+                <label class="mb-1.5 block text-xs font-semibold text-slate-600">Category</label>
+                {{ form.category }}
+            </div>
+        </div>
+
+        <div>
+            <label class="mb-1.5 block text-xs font-semibold text-slate-600">Destination link</label>
+            {{ form.destination_link }}
+        </div>
+
+        <div>
+            <label class="mb-1.5 block text-xs font-semibold text-slate-600">Hashtags</label>
+            {{ form.hashtags }}
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+                <label class="mb-1.5 block text-xs font-semibold text-slate-600">Status</label>
+                {{ form.status }}
+            </div>
+            <div>
+                <label class="mb-1.5 block text-xs font-semibold text-slate-600">Schedule for</label>
+                {{ form.scheduled_for }}
+            </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 border-t border-slate-100 pt-4">
+            <a href="{% url 'pins:content_list' %}" class="btn-secondary">Cancel</a>
+            <button type="submit" class="btn-primary"><i data-lucide="save" class="h-4 w-4"></i> {% if is_edit %}Save changes{% else %}Save pin{% endif %}</button>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Wire up the hidden file input to the Alpine preview + visible dropzone.
+    document.addEventListener('DOMContentLoaded', function () {
+        const input = document.querySelector('input[name="image"]');
+        if (!input) return;
+        input.addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const url = URL.createObjectURL(file);
+            const root = input.closest('form');
+            if (window.Alpine) {
+                Alpine.$data(root).preview = url;
+                Alpine.$data(root).usedRealApi = null;
+            }
+        });
+    });
+
+    function getCookie(name) {
+        const match = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+        return match ? match.pop() : '';
+    }
+
+    function b64ToFile(base64, filename) {
+        const byteChars = atob(base64);
+        const bytes = new Uint8Array(byteChars.length);
+        for (let i = 0; i < byteChars.length; i++) bytes[i] = byteChars.charCodeAt(i);
+        return new File([bytes], filename, { type: 'image/png' });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "pins/base.html" %}
+{% block title %}Calendar{% endblock %}
+{% block page_title %}Content Calendar{% endblock %}
+{% block page_subtitle %}<p class="text-xs text-slate-500">{{ month_name }}</p>{% endblock %}
+{% block header_actions %}
+<a href="?year={{ prev_year }}&month={{ prev_month }}" class="btn-secondary px-2.5"><i data-lucide="chevron-left" class="h-4 w-4"></i></a>
+<a href="?year={{ next_year }}&month={{ next_month }}" class="btn-secondary px-2.5"><i data-lucide="chevron-right" class="h-4 w-4"></i></a>
+{% endblock %}
+
+{% block content %}
+<div class="card overflow-hidden">
+    <div class="grid grid-cols-7 border-b border-slate-100 bg-slate-50 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <div class="py-2.5">Mon</div><div class="py-2.5">Tue</div><div class="py-2.5">Wed</div>
+        <div class="py-2.5">Thu</div><div class="py-2.5">Fri</div><div class="py-2.5">Sat</div><div class="py-2.5">Sun</div>
+    </div>
+    <div class="grid grid-cols-7">
+        {% for week in weeks %}
+            {% for day in week %}
+            <div class="min-h-[110px] border-b border-r border-slate-100 p-2 {% if not day.in_month %}bg-slate-50/60{% endif %}">
+                <span class="inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold
+                    {% if day.is_today %}bg-brand-500 text-white{% elif not day.in_month %}text-slate-300{% else %}text-slate-600{% endif %}">
+                    {{ day.date.day }}
+                </span>
+                <div class="mt-1 space-y-1">
+                    {% for pin in day.pins|slice:":3" %}
+                    <a href="{% url 'pins:content_detail' pin.pk %}"
+                       class="block truncate rounded-md px-1.5 py-1 text-[10px] font-medium
+                       {% if pin.status == 'posted' %}bg-emerald-50 text-emerald-700
+                       {% elif pin.status == 'failed' %}bg-rose-50 text-rose-700
+                       {% else %}bg-amber-50 text-amber-700{% endif %}">
+                        {{ pin.title }}
+                    </a>
+                    {% endfor %}
+                    {% if day.pins|length > 3 %}
+                    <p class="px-1.5 text-[10px] text-slate-400">+{{ day.pins|length|add:"-3" }} more</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
