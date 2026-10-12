@@ -113,6 +113,31 @@ def _wrap_by_pixel_width(draw, text, font, max_width):
     return lines
 
 
+def _load_font(size):
+    """
+    Bold TrueType font at `size` px. Render's Python runtime usually has no
+    system fonts, and the old fallback (ImageFont.load_default() with no size)
+    gives a tiny ~10px font, so titles came out unreadably small. Pillow >= 10.1
+    can build a properly sized default font, so use that as the last resort.
+    """
+    from PIL import ImageFont
+
+    for name in (
+        "DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "LiberationSans-Bold.ttf",
+        "Arial Bold.ttf",
+    ):
+        try:
+            return ImageFont.truetype(name, size)
+        except Exception:  # noqa: BLE001
+            continue
+    try:
+        return ImageFont.load_default(size=size)
+    except Exception:  # noqa: BLE001 — Pillow < 10.1, or no FreeType support
+        return ImageFont.load_default()
+
+
 def _overlay_with_pillow(image_bytes: bytes, title: str) -> bytes:
     """Deterministic fallback: draws `title` directly onto the image with Pillow."""
     from PIL import Image, ImageDraw, ImageFont
@@ -122,10 +147,7 @@ def _overlay_with_pillow(image_bytes: bytes, title: str) -> bytes:
     width, height = img.size
 
     font_size = max(28, width // 16)
-    try:
-        font = ImageFont.truetype("DejaVuSans-Bold.ttf", font_size)
-    except Exception:
-        font = ImageFont.load_default()
+    font = _load_font(font_size)
 
     max_line_width = width * 0.9
     lines = _wrap_by_pixel_width(draw, title, font, max_line_width)[:4]
