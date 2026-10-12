@@ -13,8 +13,6 @@ from django.views.decorators.http import require_POST
 
 from .forms import AutomationSettingsForm, BoardForm, ContentCategoryForm, DailyQueueForm, PinContentForm
 from .models import AutomationSettings, Board, ContentCategory, DailyPostSlot, PinContent, PostLog
-from .forms import AutomationSettingsForm, BoardForm, ContentCategoryForm, PinContentForm
-from .models import AutomationSettings, Board, ContentCategory, PinContent, PostLog
 from .services.ai_image import generate_pin_image
 from .services import pinterest_oauth
 
@@ -167,8 +165,14 @@ def content_detail(request, pk):
 
 def calendar_view(request):
     today = timezone.localdate()
-    year = int(request.GET.get("year", today.year))
-    month = int(request.GET.get("month", today.month))
+    # Bad/hand-edited query strings (?month=13, ?year=abc) used to raise a 500.
+    try:
+        year = int(request.GET.get("year", today.year))
+        month = int(request.GET.get("month", today.month))
+        if not (1 <= month <= 12 and 1 <= year <= 9998):
+            raise ValueError
+    except (TypeError, ValueError):
+        year, month = today.year, today.month
 
     cal = cal_module.Calendar(firstweekday=0)
     month_days = cal.monthdatescalendar(year, month)
