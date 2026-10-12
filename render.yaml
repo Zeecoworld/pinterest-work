@@ -18,6 +18,18 @@ services:
         value: "true"
       - key: SITE_BASE_URL
         sync: false        # your public Render URL, e.g. https://zeecomedia-pinterest-dashboard.onrender.com
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+      - key: DEFAULT_FROM_EMAIL
+        sync: false
+      - key: ALERT_EMAIL_FALLBACK
+        sync: false
+      - key: DASHBOARD_USER           # Basic Auth login for the dashboard
+        sync: false
+      - key: DASHBOARD_PASSWORD
+        sync: false
 
   # --- Auto-post cron job ---
   # Each active window (morning/afternoon/evening) gets ONE randomly chosen
@@ -45,3 +57,28 @@ services:
         value: "true"
       - key: SITE_BASE_URL
         sync: false        # your public Render URL — only needed if NOT using Supabase Storage for images
+      # --- Added: the cron job runs run_auto_post in its OWN environment, so it needs
+      # every secret the posting code touches, not just the database URL. ---
+      - key: PINTEREST_CLIENT_ID      # needed to refresh the Pinterest access token
+        sync: false
+      - key: PINTEREST_CLIENT_SECRET
+        sync: false
+      - key: USE_SUPABASE_STORAGE     # so pin.image resolves to the public Supabase URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        sync: false
+      - key: GEMINI_API_KEY           # only if overlay_title_on_image uses Gemini
+        sync: false
+      # Brevo SMTP for failure alert emails
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+      - key: DEFAULT_FROM_EMAIL
+        sync: false
+      - key: ALERT_EMAIL_FALLBACK
+        sync: false
