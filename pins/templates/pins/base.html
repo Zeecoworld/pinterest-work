@@ -150,7 +150,12 @@
     document.addEventListener('alpine:initialized', () => window.lucide && lucide.createIcons());
     // re-render icons after any Alpine DOM update (dropdowns, modals, etc.)
     document.addEventListener('DOMContentLoaded', () => {
-        const obs = new MutationObserver(() => window.lucide && lucide.createIcons());
+        let iconTimer;
+        const obs = new MutationObserver(() => {
+            if (!document.querySelector('i[data-lucide]')) return;   // nothing left to replace
+            clearTimeout(iconTimer);
+            iconTimer = setTimeout(() => window.lucide && lucide.createIcons(), 50);
+        });
         obs.observe(document.body, { childList: true, subtree: true });
     });
 </script>
