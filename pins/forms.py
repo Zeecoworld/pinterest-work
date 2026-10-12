@@ -198,6 +198,10 @@ class AutomationSettingsForm(forms.ModelForm):
             ),
         }
 
+    def clean_pinterest_access_token(self):
+        new_token = (self.cleaned_data.get("pinterest_access_token") or "").strip()
+        return new_token or self.instance.pinterest_access_token
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["default_board"].required = False
