@@ -25,8 +25,13 @@ from django.utils import timezone
 
 from pins.models import AutomationSettings, DailyPostSlot, PinContent, PostLog
 from pins.services import pinterest_oauth
+from pins.services.notifications import notify_failure
 
 logger = logging.getLogger(__name__)
+
+# Give up on a pin for the day after this many failed attempts, so a permanent
+# error (bad board ID, rejected image...) doesn't retry + email every 15 minutes.
+MAX_ATTEMPTS_PER_PIN = 3
 
 WEEKDAY_FIELDS = [
     "post_monday",
@@ -108,12 +113,18 @@ def publish_to_pinterest(pin, settings_obj):
 
     media_source, overlay_note = _build_media_source(pin, settings_obj)
 
+    description = pin.description
+    if pin.hashtags:
+        description = f"{description}\n\n{pin.hashtags}"
+
     payload = {
         "board_id": pin.board.pinterest_board_id,
-        "title": pin.title,
-        "description": pin.description,
+        "title": pin.title[:100],
+        "description": description[:800],
         "media_source": media_source,
     }
+    if pin.alt_text:
+        payload["alt_text"] = pin.alt_text[:500]
     if pin.destination_link:
         payload["link"] = pin.destination_link
 
@@ -139,6 +150,17 @@ class Command(BaseCommand):
     help = "Posts each window's due pin to Pinterest, once its randomly chosen daily time has passed."
 
     def handle(self, *args, **options):
+        # Anything that escapes _run() (DB down, bad config...) would otherwise
+        # only show up in the cron logs. Email it, then re-raise so the cron
+        # job still shows as failed.
+        try:
+            self._run()
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("run_auto_post crashed")
+            notify_failure("Auto-post job crashed", f"{type(exc).__name__}: {exc}")
+            raise
+
+    def _run(self):
         settings_obj = AutomationSettings.load()
 
         if not settings_obj.is_enabled:
@@ -192,11 +214,41 @@ class Command(BaseCommand):
             try:
                 pinterest_id = publish_to_pinterest(pin, settings_obj)
             except Exception as exc:  # noqa: BLE001 — log any failure and move on
+                # failure_reason and PostLog.message are 255-char columns; an
+                # untruncated Pinterest error body overflows them on Postgres and
+                # crashes the job with a DataError instead of recording the failure.
+                reason = str(exc)
                 pin.status = PinContent.Status.FAILED
-                pin.failure_reason = str(exc)
+                pin.failure_reason = reason[:255]
                 pin.save(update_fields=["status", "failure_reason"])
-                PostLog.objects.create(pin=pin, result=PostLog.Result.FAILURE, message=f"[{label}] {exc}")
+                PostLog.objects.create(
+                    pin=pin, result=PostLog.Result.FAILURE, message=f"[{label}] {reason}"[:255]
+                )
                 self.stderr.write(self.style.ERROR(f"Failed to post '{pin.title}' ({label}): {exc}"))
+
+                attempts = PostLog.objects.filter(
+                    pin=pin, result=PostLog.Result.FAILURE, created_at__date=now.date()
+                ).count()
+                gave_up = attempts >= MAX_ATTEMPTS_PER_PIN
+                if gave_up:
+                    # Stop retrying this slot today; it won't be picked up again
+                    # (FAILED pins are excluded from the fallback query).
+                    slot.completed = True
+                    slot.save(update_fields=["completed"])
+
+                notify_failure(
+                    f"Pin failed: {pin.title[:60]}",
+                    (
+                        f"Pin: {pin.title}\n"
+                        f"Window: {label}\n"
+                        f"Attempt: {attempts} of {MAX_ATTEMPTS_PER_PIN}"
+                        f"{' — giving up for today' if gave_up else ' — will retry on the next run'}\n\n"
+                        f"Error:\n{reason}\n\n"
+                        "Common causes: Pinterest token/refresh failure (reconnect in Automation "
+                        "Settings), missing board ID, or an image Pinterest couldn't fetch."
+                    ),
+                    settings_obj,
+                )
                 continue
 
             pin.status = PinContent.Status.POSTED
