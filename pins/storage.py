@@ -13,6 +13,8 @@ you'll need to generate signed URLs instead of using `.url()` as-is.
 """
 
 import mimetypes
+import posixpath
+import uuid
 from io import BytesIO
 
 from django.conf import settings
@@ -41,15 +43,36 @@ class SupabaseStorage(Storage):
         data = self._bucket().download(name)
         return BytesIO(data)
 
+    def get_available_name(self, name, max_length=None):
+        """
+        Make the name unique WITHOUT asking Supabase whether it's taken.
+
+        The default implementation calls exists() -> bucket.list() over the
+        network (and Django calls it twice per save: once in Storage.save() and
+        again inside the old _save()). On top of being slow, list() only returns
+        the first 100 files of a folder by default, so on a busy folder a name
+        collision went undetected and 'upsert' silently overwrote an older pin's
+        image. A random suffix makes collisions practically impossible and costs
+        nothing.
+        """
+        directory, filename = posixpath.split(name)
+        stem, ext = posixpath.splitext(filename)
+        suffix = f"_{uuid.uuid4().hex[:8]}"
+        if max_length:  # ImageField's column is varchar(100) — keep the full path inside it
+            room = max_length - len(directory) - (1 if directory else 0) - len(suffix) - len(ext)
+            stem = stem[: max(room, 1)]
+        unique = f"{stem}{suffix}{ext}"
+        return posixpath.join(directory, unique) if directory else unique
+
     def _save(self, name, content):
-        name = self.get_available_name(name, max_length=None)
+        # `name` is already unique (see get_available_name) — one upload call, nothing else.
         content.seek(0)
         file_bytes = content.read()
         content_type = mimetypes.guess_type(name)[0] or 'application/octet-stream'
         self._bucket().upload(
             path=name,
             file=file_bytes,
-            file_options={'content-type': content_type, 'upsert': 'true'},
+            file_options={'content-type': content_type, 'upsert': 'false'},
         )
         return name
 
