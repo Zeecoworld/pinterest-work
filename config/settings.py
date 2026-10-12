@@ -58,6 +58,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'pins.middleware.DashboardBasicAuthMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -222,16 +223,66 @@ PINTEREST_SCOPES = env(
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Optional HTTP Basic Auth over the whole dashboard (see pins/middleware.py).
+# Set both to turn it on; leave either blank to leave the dashboard open.
+DASHBOARD_USER = env('DASHBOARD_USER', '')
+DASHBOARD_PASSWORD = env('DASHBOARD_PASSWORD', '')
+
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'pins:dashboard'
 LOGOUT_REDIRECT_URL = 'login'
 
 
-# Email
-# https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
+# Email (Brevo SMTP relay) — used for failure alerts from run_auto_post.
+# In Brevo: SMTP & API -> SMTP -> generate an SMTP key. EMAIL_HOST_USER is the
+# SMTP login shown on that page (NOT your Brevo account password), and
+# DEFAULT_FROM_EMAIL must be a sender/domain verified in Brevo.
+# With no EMAIL_HOST_USER/PASSWORD set, mail just prints to the console (local dev).
+#
+# Django 6.1 replaced the EMAIL_* settings with MAILERS (EMAIL_* is deprecated
+# there, and defining both raises ImproperlyConfigured). requirements.txt allows
+# Django 5.x too, which only knows EMAIL_*, so both forms are handled below.
+import django
 
-MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
-    },
-}
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', '')
+_EMAIL_HOST = env('EMAIL_HOST', 'smtp-relay.brevo.com')
+_EMAIL_PORT = int(env('EMAIL_PORT', '587'))
+_EMAIL_USE_TLS = env_bool('EMAIL_USE_TLS', True)
+_EMAIL_CONFIGURED = bool(EMAIL_HOST_USER and EMAIL_HOST_PASSWORD)
+
+if django.VERSION >= (6, 1):
+    del EMAIL_HOST_USER, EMAIL_HOST_PASSWORD  # must not coexist with MAILERS
+    if _EMAIL_CONFIGURED:
+        MAILERS = {
+            'default': {
+                'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
+                'OPTIONS': {
+                    'host': _EMAIL_HOST,
+                    'port': _EMAIL_PORT,
+                    'username': env('EMAIL_HOST_USER'),
+                    'password': env('EMAIL_HOST_PASSWORD'),
+                    'use_tls': _EMAIL_USE_TLS,
+                    'timeout': 20,
+                },
+            },
+        }
+    else:
+        MAILERS = {'default': {'BACKEND': 'django.core.mail.backends.console.EmailBackend'}}
+else:
+    EMAIL_BACKEND = (
+        'django.core.mail.backends.smtp.EmailBackend'
+        if _EMAIL_CONFIGURED
+        else 'django.core.mail.backends.console.EmailBackend'
+    )
+    EMAIL_HOST = _EMAIL_HOST
+    EMAIL_PORT = _EMAIL_PORT
+    EMAIL_USE_TLS = _EMAIL_USE_TLS
+    EMAIL_TIMEOUT = 20
+
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', 'Zeecomedia Pins <alerts@zeecomedia.net>')
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+
+# Used when AutomationSettings.notification_email is blank, or when the
+# command crashes before settings can even be loaded from the database.
+ALERT_EMAIL_FALLBACK = env('ALERT_EMAIL_FALLBACK', '')
