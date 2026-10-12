@@ -42,7 +42,7 @@ class PinContentForm(forms.ModelForm):
                 }
             ),
             "image": forms.ClearableFileInput(
-                attrs={"class": "hidden", "accept": "image/*", "x-ref": "fileInput"}
+                attrs={"class": "hidden", "accept": ".jpg,.jpeg,.png,.webp", "x-ref": "fileInput"}
             ),
             "alt_text": forms.TextInput(
                 attrs={"class": BASE_INPUT, "placeholder": "Describe the image for accessibility"}
