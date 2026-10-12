@@ -248,8 +248,6 @@ def automation_settings(request):
     if request.method == "POST":
         form = AutomationSettingsForm(request.POST, instance=settings_obj)
         if form.is_valid():
-            if not form.cleaned_data.get("pinterest_access_token"):
-                form.instance.pinterest_access_token = settings_obj.pinterest_access_token
             form.save()
             messages.success(request, "Automation settings saved.")
             return redirect("pins:automation_settings")
