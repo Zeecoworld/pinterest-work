@@ -45,7 +45,7 @@
         {% for pin in pins %}
         <div class="card group overflow-hidden">
             <a href="{% url 'pins:content_detail' pin.pk %}" class="relative block aspect-[3/4] overflow-hidden bg-slate-100">
-                <img src="{{ pin.image.url }}" alt="{{ pin.alt_text }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
+                <img src="{{ pin.image.url }}" alt="{{ pin.alt_text }}" loading="lazy" decoding="async" class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
                 <span class="absolute left-2 top-2 badge
                     {% if pin.status == 'posted' %}bg-emerald-500/90 text-white
                     {% elif pin.status == 'scheduled' %}bg-amber-500/90 text-white
