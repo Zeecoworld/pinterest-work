@@ -4,7 +4,9 @@ services:
     name: zeecomedia-pinterest-dashboard
     runtime: python
     buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput"
-    startCommand: "gunicorn config.wsgi:application"
+    # Default gunicorn = 1 worker, 30s timeout: one slow upload/AI generation blocks the
+    # whole site and anything over 30s is killed. Threads let requests overlap.
+    startCommand: "gunicorn config.wsgi:application --workers 2 --threads 4 --timeout 120"
     envVars:
       - key: DJANGO_DEBUG
         value: "false"
