@@ -80,7 +80,9 @@ def _generate_with_stable_diffusion(prompt: str) -> ContentFile:
     resp = requests.post(
         f"{settings.SD_API_URL.rstrip('/')}/sdapi/v1/txt2img",
         json=payload,
-        timeout=settings.SD_TIMEOUT_SECONDS,
+        # (connect, read): an unreachable SD box fails in 5s instead of hanging
+        # the request for the full read timeout before the placeholder fallback kicks in.
+        timeout=(5, settings.SD_TIMEOUT_SECONDS),
     )
     resp.raise_for_status()
     data = resp.json()
